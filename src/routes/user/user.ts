@@ -1,8 +1,12 @@
 import { ServerRoute, Request, ResponseToolkit } from "@hapi/hapi";
 import joi from "joi";
-import { client } from "../../db-config";
 
-import { createUser, getUser, updateUser } from "./handlers/userHandlers";
+import {
+  createUser,
+  getUser,
+  login,
+  updateUser,
+} from "./handlers/userHandlers";
 import { updateUserSchema, userCreateSchema } from "./schema/usersSchema";
 
 const route: ServerRoute[] = [
@@ -23,7 +27,7 @@ const route: ServerRoute[] = [
 
   {
     method: "POST",
-    path: "/api/user/createUser",
+    path: "/api/user/registerUser",
     handler: createUser,
 
     options: {
@@ -45,6 +49,20 @@ const route: ServerRoute[] = [
         params: joi.object({ id: joi.string().required() }),
         payload: updateUserSchema,
         options: { abortEarly: false },
+      },
+    },
+  },
+  {
+    path: "/api/user/login",
+    method: "POST",
+    handler: login,
+    options: {
+      auth: { mode: "try" },
+      validate: {
+        payload: joi.object({
+          email: joi.string().email().required(),
+          password: joi.string().required(),
+        }),
       },
     },
   },

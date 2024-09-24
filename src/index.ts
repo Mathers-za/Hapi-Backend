@@ -1,9 +1,11 @@
-import hapi from "@hapi/hapi";
+import hapi, { Request } from "@hapi/hapi";
 import dotenv from "dotenv";
 import { run as mongoRun } from "./db-config";
 import userRoutes from "./routes/user/user";
 import { customNotFoundRoute } from "./routes/utilityRoutes";
-import { client } from "./db-config";
+import { client, db } from "./db-config";
+import cookieAuth from "@hapi/cookie";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -20,9 +22,35 @@ const init = async () => {
     },
   });
 
+  await server.register(cookieAuth);
+
+  server.auth.strategy("session", "cookie", {
+    redirectTo: "/login",
+    cookie: {
+      name: "sid",
+      clearInvalid: false,
+      isSecure: false,
+      isHttpOnly: true,
+      password: process.env.COOKIE_PASSWORD,
+    },
+    validate: async (request: Request, session: any) => {
+      const { id } = session;
+      const user = await db
+        .collection("users")
+        .findOne({ _id: new Object(id) });
+      if (user?._id === session.id) {
+        return { isValid: true, credentials: user };
+      } else {
+        return { isValid: false };
+      }
+    },
+  });
+  server.auth.default("session");
+
+  server.route([...userRoutes, customNotFoundRoute]);
   await server.start();
   await mongoRun();
-  server.route([...userRoutes, customNotFoundRoute]);
+
   console.log(`Server running on ${server.info.uri}`);
 };
 

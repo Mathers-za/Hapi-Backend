@@ -35,10 +35,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.createUser = exports.getUser = void 0;
+exports.login = exports.updateUser = exports.createUser = exports.getUser = void 0;
 var mongodb_1 = require("mongodb");
 var db_config_1 = require("../../../db-config");
+var bcrypt_1 = __importDefault(require("bcrypt"));
 var userCollection = db_config_1.db.collection("users");
 var getUser = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
     var id, user, error_1;
@@ -69,25 +73,34 @@ var getUser = function (request, h) { return __awaiter(void 0, void 0, void 0, f
 }); };
 exports.getUser = getUser;
 var createUser = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
-    var result, error_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var _a, password, passwordConfirm, email, user, error_2;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, userCollection.insertOne(request.payload)];
+                _b.trys.push([0, 3, , 4]);
+                _a = request.payload, password = _a.password, passwordConfirm = _a.passwordConfirm, email = _a.email;
+                return [4 /*yield*/, userCollection.findOne({
+                        email: email,
+                    })];
             case 1:
-                result = _a.sent();
-                return [2 /*return*/, h.response({ success: true }).code(201)];
+                user = _b.sent();
+                if (user !== null) {
+                    throw new Error("User already exists");
+                }
+                return [4 /*yield*/, userCollection.insertOne(request.payload)];
             case 2:
-                error_2 = _a.sent();
+                _b.sent();
+                return [2 /*return*/, h.response({ success: true }).code(201)];
+            case 3:
+                error_2 = _b.sent();
                 console.error(error_2);
                 h.response({
                     success: false,
                     message: "Internal server error",
                     error: error_2.message,
                 });
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
+                return [3 /*break*/, 4];
+            case 4: return [2 /*return*/];
         }
     });
 }); };
@@ -97,11 +110,11 @@ var updateUser = function (request, h) { return __awaiter(void 0, void 0, void 0
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                id = new mongodb_1.ObjectId(request.params.id);
+                id = request.params.id;
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, userCollection.findOneAndUpdate({ _id: id }, request.payload, { returnDocument: "after" })];
+                return [4 /*yield*/, userCollection.findOneAndUpdate({ _id: new mongodb_1.ObjectId(id) }, { $set: request.payload }, { returnDocument: "after" })];
             case 2:
                 updatedDocument = _a.sent();
                 if (updatedDocument === null || updatedDocument === void 0 ? void 0 : updatedDocument._id) {
@@ -119,3 +132,45 @@ var updateUser = function (request, h) { return __awaiter(void 0, void 0, void 0
     });
 }); };
 exports.updateUser = updateUser;
+var login = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, password, email, user, _b, error_4;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
+            case 0:
+                _a = request.payload, password = _a.password, email = _a.email;
+                _c.label = 1;
+            case 1:
+                _c.trys.push([1, 5, , 6]);
+                return [4 /*yield*/, userCollection.findOne({ email: email })];
+            case 2:
+                user = _c.sent();
+                _b = user;
+                if (!_b) return [3 /*break*/, 4];
+                return [4 /*yield*/, bcrypt_1.default.compare(password, user.password)];
+            case 3:
+                _b = (_c.sent());
+                _c.label = 4;
+            case 4:
+                if (_b) {
+                    request.cookieAuth.set({ id: user._id });
+                    return [2 /*return*/, h
+                            .response({ success: true, message: "successfully logged in" })
+                            .redirect("/")
+                            .code(200)];
+                }
+                else {
+                    return [2 /*return*/, h
+                            .response({ success: false, message: "unsuccessful login attempt" })
+                            .redirect("/login")
+                            .code(401)];
+                }
+                return [3 /*break*/, 6];
+            case 5:
+                error_4 = _c.sent();
+                console.error(error_4);
+                return [2 /*return*/, h.response({ success: false, error: error_4.message }).code(500)];
+            case 6: return [2 /*return*/];
+        }
+    });
+}); };
+exports.login = login;

@@ -68,10 +68,11 @@ var run = function () { return __awaiter(void 0, void 0, void 0, function () {
                 // Send a ping to confirm a successful connection
                 _a.sent();
                 console.log("Pinged your deployment. You successfully connected to MongoDB!");
-                return [3 /*break*/, 4];
+                return [2 /*return*/, exports.client];
             case 3:
                 error_1 = _a.sent();
                 console.error(error_1);
+                process.exit(1);
                 return [3 /*break*/, 4];
             case 4: return [2 /*return*/];
         }

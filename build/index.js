@@ -54,6 +54,7 @@ var db_config_1 = require("./db-config");
 var user_1 = __importDefault(require("./routes/user/user"));
 var utilityRoutes_1 = require("./routes/utilityRoutes");
 var db_config_2 = require("./db-config");
+var cookie_1 = __importDefault(require("@hapi/cookie"));
 dotenv_1.default.config();
 var init = function () { return __awaiter(void 0, void 0, void 0, function () {
     var server;
@@ -63,21 +64,63 @@ var init = function () { return __awaiter(void 0, void 0, void 0, function () {
                 server = hapi_1.default.server({
                     host: process.env.Host,
                     port: process.env.PORT,
+                    routes: {
+                        validate: {
+                            failAction: function (request, h, error) {
+                                throw error;
+                            },
+                        },
+                    },
                 });
-                return [4 /*yield*/, server.start()];
+                return [4 /*yield*/, server.register(cookie_1.default)];
             case 1:
                 _a.sent();
-                return [4 /*yield*/, (0, db_config_1.run)()];
+                server.auth.strategy("session", "cookie", {
+                    redirectTo: "/login",
+                    cookie: {
+                        name: "sid",
+                        clearInvalid: false,
+                        isSecure: false,
+                        isHttpOnly: true,
+                        password: process.env.COOKIE_PASSWORD,
+                        validate: function (request, session) { return __awaiter(void 0, void 0, void 0, function () {
+                            var id, user;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        id = session.id;
+                                        return [4 /*yield*/, db_config_2.db
+                                                .collection("users")
+                                                .findOne({ _id: new Object(id) })];
+                                    case 1:
+                                        user = _a.sent();
+                                        if ((user === null || user === void 0 ? void 0 : user._id) === session.id) {
+                                            return [2 /*return*/, { isValid: true, credentials: user }];
+                                        }
+                                        else {
+                                            return [2 /*return*/, { isValid: false }];
+                                        }
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); },
+                    },
+                });
+                server.auth.default("session");
+                server.route(__spreadArray(__spreadArray([], user_1.default, true), [utilityRoutes_1.customNotFoundRoute], false));
+                return [4 /*yield*/, server.start()];
             case 2:
                 _a.sent();
-                server.route(__spreadArray(__spreadArray([], user_1.default, true), [utilityRoutes_1.customNotFoundRoute], false));
+                return [4 /*yield*/, (0, db_config_1.run)()];
+            case 3:
+                _a.sent();
                 console.log("Server running on ".concat(server.info.uri));
                 return [2 /*return*/];
         }
     });
 }); };
 process.on("uncaughtException", function (error) {
-    console.log("An unhandled error occured when starting the db, error: ".concat(error));
+    console.log("An unhandled error occurred when starting the db, error: ".concat(error));
 });
 process.on("SIGINT", function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
