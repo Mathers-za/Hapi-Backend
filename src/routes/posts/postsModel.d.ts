@@ -11,6 +11,4 @@ export interface IComments {
   _id: ObjectId;
   content: string;
   userId: ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
 }

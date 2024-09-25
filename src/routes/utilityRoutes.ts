@@ -13,4 +13,5 @@ export const customNotFoundRoute: ServerRoute = {
       })
       .code(404);
   },
+  options: { auth: false },
 };

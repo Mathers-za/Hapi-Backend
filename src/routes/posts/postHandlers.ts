@@ -1,7 +1,7 @@
 import { Request, ResponseToolkit } from "@hapi/hapi";
 import { ObjectId } from "mongodb";
-import { db } from "../../../db-config";
-import { IComments, IPosts } from "../../../models/postsModel";
+import { db } from "../../db-config";
+import { IComments, IPosts } from "./postsModel";
 import { skip } from "node:test";
 
 const postsCollection = db.collection("posts");
@@ -25,7 +25,7 @@ export const updatePost = async (request: Request, h: ResponseToolkit) => {
   try {
     const updatedDocument = await postsCollection.findOneAndUpdate(
       { _id: id },
-      request.payload as Partial<IComments>,
+      request.payload as object,
       { returnDocument: "after" }
     );
 
@@ -46,17 +46,22 @@ export const getPost = async (request: Request, h: ResponseToolkit) => {
     const post = await postsCollection.findOne({ _id: id });
     return h.response({ success: true, data: post }).code(200);
   } catch (error: any) {
-    h.response({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    }).code(500);
+    console.error(error);
+    return h
+      .response({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      })
+      .code(500);
   }
 };
 
-const getArrayOfPosts = async (request: Request, h: ResponseToolkit) => {
+export const getArrayOfPosts = async (request: Request, h: ResponseToolkit) => {
   const id = new ObjectId(request.params.id);
-  const { pageSize, page } = request.query;
+  const page = Number(request.query.page);
+  const pageSize = Number(request.query.pageSize);
+
   const offset = page - 1 * 10;
 
   try {
@@ -98,7 +103,58 @@ const getArrayOfPosts = async (request: Request, h: ResponseToolkit) => {
       ])
       .toArray();
 
-    h.response({ success: true, data: posts });
+    return h.response({ success: true, data: posts }).code(200);
+  } catch (error: any) {
+    console.error(error);
+    return h
+      .response({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      })
+      .code(500);
+  }
+};
+
+export const deletePost = async (request: Request, h: ResponseToolkit) => {
+  const id = new ObjectId(request.params.id);
+
+  try {
+    const result = postsCollection.deleteOne({ _id: id });
+    if ((await result).deletedCount > 0) {
+      return h.response({ success: true }).code(200);
+    }
+  } catch (error: any) {
+    console.error(error);
+    return h
+      .response({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      })
+      .code(500);
+  }
+};
+
+export const updatePostComment = async (
+  request: Request,
+  h: ResponseToolkit
+) => {
+  const postId = new ObjectId(request.query.postId);
+  const commentId = new ObjectId(request.query.commentId);
+
+  try {
+    const update = await postsCollection.findOneAndUpdate(
+      { _id: postId, "comments._id": commentId },
+      {
+        $set: { "comments.$.content": (request.payload as any).content },
+      },
+      {
+        returnDocument: "after",
+      }
+    );
+
+    return h.response({ success: true, data: update }).code(200);
   } catch (error: any) {
     h.response({
       success: false,

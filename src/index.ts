@@ -5,7 +5,7 @@ import userRoutes from "./routes/user/user";
 import { customNotFoundRoute } from "./routes/utilityRoutes";
 import { client, db } from "./db-config";
 import cookieAuth from "@hapi/cookie";
-import bcrypt from "bcrypt";
+import postsRoutes from "./routes/posts/postsRoutes";
 import { ObjectId } from "mongodb";
 
 dotenv.config();
@@ -15,6 +15,7 @@ const init = async () => {
     host: process.env.Host,
     port: process.env.PORT,
     routes: {
+      cors: true,
       validate: {
         failAction: (request, h, error) => {
           throw error;
@@ -45,9 +46,10 @@ const init = async () => {
       }
     },
   });
+
   server.auth.default("session");
 
-  server.route([...userRoutes, customNotFoundRoute]);
+  server.route([...userRoutes, customNotFoundRoute, ...postsRoutes]);
   await server.start();
   await mongoRun();
 

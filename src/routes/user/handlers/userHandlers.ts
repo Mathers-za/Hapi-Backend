@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import { Request, ResponseToolkit } from "@hapi/hapi";
 import { db } from "../../../db-config";
 import bcrypt from "bcrypt";
-import { IRegisterUser, IUser } from "../../../models/userModel";
+import { IRegisterUser, IUser } from "../userModel";
 
 const userCollection = db.collection("users");
 

@@ -54,7 +54,7 @@ const route: ServerRoute[] = [
     method: "POST",
     handler: login,
     options: {
-      auth: { mode: "try" },
+      auth: false,
       validate: {
         payload: joi.object({
           email: joi.string().email().required(),
