@@ -6,6 +6,7 @@ import { customNotFoundRoute } from "./routes/utilityRoutes";
 import { client, db } from "./db-config";
 import cookieAuth from "@hapi/cookie";
 import bcrypt from "bcrypt";
+import { ObjectId } from "mongodb";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ const init = async () => {
         failAction: (request, h, error) => {
           throw error;
         },
+        options: { abortEarly: true, stripUnknown: true },
       },
     },
   });
@@ -34,10 +36,8 @@ const init = async () => {
       password: process.env.COOKIE_PASSWORD,
     },
     validate: async (request: Request, session: any) => {
-      const { id } = session;
-      const user = await db
-        .collection("users")
-        .findOne({ _id: new Object(id) });
+      const id: ObjectId = session.id;
+      const user = await db.collection("users").findOne({ _id: id });
       if (user?._id === session.id) {
         return { isValid: true, credentials: user };
       } else {

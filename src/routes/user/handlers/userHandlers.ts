@@ -2,15 +2,10 @@ import { ObjectId } from "mongodb";
 import { Request, ResponseToolkit } from "@hapi/hapi";
 import { db } from "../../../db-config";
 import bcrypt from "bcrypt";
+import { IRegisterUser, IUser } from "../../../models/userModel";
 
-interface IUser {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  passwordConfirm: string;
-}
 const userCollection = db.collection("users");
+
 export const getUser = async (request: Request, h: ResponseToolkit) => {
   const id = new ObjectId(request.params.id);
 
@@ -29,17 +24,28 @@ export const getUser = async (request: Request, h: ResponseToolkit) => {
   }
 };
 
-export const createUser = async (request: Request, h: ResponseToolkit) => {
+export const registerUser = async (request: Request, h: ResponseToolkit) => {
   try {
-    const { password, passwordConfirm, email } = request.payload as IUser;
+    const payload = request.payload as IRegisterUser;
+    delete payload.passwordConfirm;
+
+    const { email, password } = payload as any;
+
     const user = await userCollection.findOne({
       email: email,
     });
     if (user !== null) {
-      throw new Error("User already exists");
+      return h
+        .response({
+          success: false,
+          message: "User with this email address already exists",
+        })
+        .code(400);
     }
 
-    await userCollection.insertOne(request.payload as object);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await userCollection.insertOne({ ...payload, password: hashedPassword });
 
     return h.response({ success: true }).code(201);
   } catch (error: any) {
@@ -48,7 +54,7 @@ export const createUser = async (request: Request, h: ResponseToolkit) => {
       success: false,
       message: "Internal server error",
       error: error.message,
-    });
+    }).code(500);
   }
 };
 
@@ -57,7 +63,7 @@ export const updateUser = async (request: Request, h: ResponseToolkit) => {
   try {
     const updatedDocument = await userCollection.findOneAndUpdate(
       { _id: new ObjectId(id) },
-      { $set: request.payload as object },
+      { $set: request.payload as IUser },
       { returnDocument: "after" }
     );
     if (updatedDocument?._id) {

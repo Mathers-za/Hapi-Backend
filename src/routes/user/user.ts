@@ -2,12 +2,12 @@ import { ServerRoute, Request, ResponseToolkit } from "@hapi/hapi";
 import joi from "joi";
 
 import {
-  createUser,
   getUser,
   login,
+  registerUser,
   updateUser,
 } from "./handlers/userHandlers";
-import { updateUserSchema, userCreateSchema } from "./schema/usersSchema";
+import { updateUserSchema, registerUserSchema } from "./schema/usersSchema";
 
 const route: ServerRoute[] = [
   {
@@ -28,15 +28,12 @@ const route: ServerRoute[] = [
   {
     method: "POST",
     path: "/api/user/registerUser",
-    handler: createUser,
+    handler: registerUser,
 
     options: {
+      auth: false,
       validate: {
-        payload: userCreateSchema,
-        failAction: (request, h, err) => {
-          throw err;
-        },
-        options: { abortEarly: true },
+        payload: registerUserSchema,
       },
     },
   },
