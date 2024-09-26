@@ -57,10 +57,11 @@ export const getPost = async (request: Request, h: ResponseToolkit) => {
   }
 };
 
-export const getArrayOfPosts = async (request: Request, h: ResponseToolkit) => {
-  const id = new ObjectId(request.params.id);
-  const page = Number(request.query.page);
-  const pageSize = Number(request.query.pageSize);
+export const getArrayOfFriendsPosts = async (
+  request: Request,
+  h: ResponseToolkit
+) => {
+  const { id, page, pageSize, friendsArray } = request.payload as any;
 
   const offset = page - 1 * 10;
 
@@ -70,7 +71,7 @@ export const getArrayOfPosts = async (request: Request, h: ResponseToolkit) => {
       .aggregate([
         {
           $match: {
-            userId: id,
+            userId: { $in: friendsArray },
           },
         },
         {
@@ -85,10 +86,14 @@ export const getArrayOfPosts = async (request: Request, h: ResponseToolkit) => {
           $project: {
             _id: 1,
             content: 1,
-            user: { $arrayElemAt: ["$user", 0] },
+            user: 1,
             comments: 1,
           },
         },
+        {
+          $unwind: "$user",
+        },
+        { $addFields: { commentsCount: { $size: "$comments" } } },
 
         {
           $sort: {
@@ -155,6 +160,40 @@ export const updatePostComment = async (
     );
 
     return h.response({ success: true, data: update }).code(200);
+  } catch (error: any) {
+    h.response({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    }).code(500);
+  }
+};
+
+export const getUsersPosts = async (request: Request, h: ResponseToolkit) => {
+  const userId = new ObjectId(request.params.id);
+  const page = Number(request.query.page);
+  const pageSize = Number(request.query.pageSize);
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const posts = await postsCollection
+      .aggregate([
+        {
+          $match: { userId: userId },
+        },
+        {
+          $sort: { date: -1 },
+        },
+        {
+          $skip: offset,
+        },
+        {
+          $limit: pageSize,
+        },
+      ])
+      .toArray();
+
+    h.response({ success: true, data: posts }).code(200);
   } catch (error: any) {
     h.response({
       success: false,

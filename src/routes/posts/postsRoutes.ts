@@ -2,6 +2,8 @@ import { ServerRoute } from "@hapi/hapi";
 import {
   createPost,
   deletePost,
+  getArrayOfFriendsPosts,
+  getUsersPosts,
   updatePost,
   updatePostComment,
 } from "./postHandlers";
@@ -11,7 +13,7 @@ import {
   updateCommentSchema,
   updatePostsSchema,
 } from "./postsJoiSchemas";
-import joi from "joi";
+import joi, { disallow } from "joi";
 
 const routes: ServerRoute[] = [
   {
@@ -62,6 +64,35 @@ const routes: ServerRoute[] = [
           commentId: joi.string().required(),
         }),
         payload: updateCommentSchema,
+      },
+    },
+  },
+  {
+    path: "/api/posts/getFriendsPosts",
+    method: "POST",
+    handler: getArrayOfFriendsPosts,
+    options: {
+      auth: false,
+      validate: {
+        payload: joi.object({
+          page: joi.number().min(1).required(),
+          pageSize: joi.number().required().min(5).default(10),
+          friendsArray: joi.array(),
+        }),
+      },
+    },
+  },
+  {
+    path: "/api/posts/getUsersPosts",
+    method: "GET",
+    handler: getUsersPosts,
+    options: {
+      auth: false,
+      validate: {
+        query: joi.object({
+          page: joi.string().required().default("1"),
+          pageSize: joi.string().required().default("10"),
+        }),
       },
     },
   },
