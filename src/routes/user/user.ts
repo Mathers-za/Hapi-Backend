@@ -2,6 +2,7 @@ import { ServerRoute, Request, ResponseToolkit } from "@hapi/hapi";
 import joi from "joi";
 
 import {
+  findUsersByNameOrSurname,
   getUser,
   login,
   registerUser,
@@ -45,7 +46,6 @@ const route: ServerRoute[] = [
       validate: {
         params: joi.object({ id: joi.string().required() }),
         payload: updateUserSchema,
-        options: { abortEarly: false },
       },
     },
   },
@@ -59,6 +59,20 @@ const route: ServerRoute[] = [
         payload: joi.object({
           email: joi.string().email().required(),
           password: joi.string().required(),
+        }),
+      },
+    },
+  },
+  {
+    path: "/api/user/search",
+    method: "GET",
+    handler: findUsersByNameOrSurname,
+    options: {
+      auth: false,
+      validate: {
+        query: joi.object({
+          searchString: joi.string().optional().allow(""),
+          limit: joi.string().required().default("20"),
         }),
       },
     },

@@ -96,3 +96,49 @@ export const login = async (request: Request, h: ResponseToolkit) => {
     return h.response({ success: false, error: error.message }).code(500);
   }
 };
+
+export const findUsersByNameOrSurname = async (
+  request: Request,
+  h: ResponseToolkit
+) => {
+  const searchString = request.query.searchString;
+  const limit = Number(request.query.limit);
+  try {
+    if (
+      searchString !== "" ||
+      typeof searchString === "undefined" ||
+      typeof searchString !== null
+    ) {
+      const users = await userCollection
+        .aggregate([
+          {
+            $match: {
+              $or: [
+                { firstName: { $regEx: searchString, $options: "i" } },
+                { lastName: { $regEx: searchString, $options: "i" } },
+              ],
+            },
+          },
+          {
+            $sort: { firstName: 1, lastName: 1 },
+          },
+          {
+            $limit: limit,
+          },
+        ])
+        .toArray();
+
+      return h.response({ success: true, data: users }).code(200);
+    }
+
+    const users = await userCollection
+      .find({})
+      .sort({ firstName: 1 })
+      .limit(limit)
+      .toArray();
+    h.response({ success: true, data: users }).code(200);
+  } catch (error: any) {
+    console.error(error);
+    return h.response({ success: false, error: error.message }).code(500);
+  }
+};
