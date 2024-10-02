@@ -201,6 +201,7 @@ export const getUsersPosts = async (request: Request, h: ResponseToolkit) => {
     }).code(500);
   }
 };
+//FIXME when you run the server028: Private identifiers are only available when targeting ECMAScript 2015 and higher #private occurs. Must fix
 
 export const redisCachingOfPosts = async (
   request: Request,

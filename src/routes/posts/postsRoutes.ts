@@ -1,4 +1,5 @@
-import { ServerRoute } from "@hapi/hapi";
+import { ResponseToolkit, Request, ServerRoute } from "@hapi/hapi";
+import { PostsController } from "../../controllers/posts.controller";
 import {
   createPost,
   deletePost,
@@ -14,7 +15,9 @@ import {
   updateCommentSchema,
   updatePostsSchema,
 } from "./postsJoiSchemas";
-import joi, { disallow } from "joi";
+import joi from "joi";
+
+const postsController = new PostsController();
 
 const routes: ServerRoute[] = [
   {
@@ -76,7 +79,9 @@ const routes: ServerRoute[] = [
   {
     path: "/api/posts/getFriendsPosts",
     method: "POST",
-    handler: getArrayOfFriendsPosts,
+    handler: async (request: Request, h: ResponseToolkit) => {
+      return postsController.getFriendsPosts(request, h);
+    },
     options: {
       auth: false,
       validate: {
