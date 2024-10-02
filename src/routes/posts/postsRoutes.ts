@@ -4,6 +4,7 @@ import {
   deletePost,
   getArrayOfFriendsPosts,
   getUsersPosts,
+  redisCachingOfPosts,
   updatePost,
   updatePostComment,
 } from "./postHandlers";
@@ -63,7 +64,12 @@ const routes: ServerRoute[] = [
           postId: joi.string().required(),
           commentId: joi.string().required(),
         }),
-        payload: updateCommentSchema,
+        payload: joi.object({
+          content: joi.string().required(),
+          userId: joi.string().required(),
+          updatedAt: joi.date().required(),
+          commentId: joi.string().required(),
+        }),
       },
     },
   },
@@ -83,7 +89,7 @@ const routes: ServerRoute[] = [
     },
   },
   {
-    path: "/api/posts/getUsersPosts",
+    path: "/api/posts/getUsersPosts/{userId}",
     method: "GET",
     handler: getUsersPosts,
     options: {
@@ -93,7 +99,20 @@ const routes: ServerRoute[] = [
           page: joi.string().required().default("1"),
           pageSize: joi.string().required().default("10"),
         }),
+        params: joi.object({
+          userId: joi.string().required(),
+        }),
       },
+    },
+  },
+
+  {
+    path: "/api/posts/redisTest",
+    method: "GET",
+    handler: redisCachingOfPosts,
+    options: {
+      auth: false,
+      description: "test endpoint for redis test drive",
     },
   },
 ];

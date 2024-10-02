@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -39,7 +50,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.updateUser = exports.createUser = exports.getUser = void 0;
+exports.findUsersByNameOrSurname = exports.login = exports.updateUser = exports.registerUser = exports.getUser = void 0;
 var mongodb_1 = require("mongodb");
 var db_config_1 = require("../../../db-config");
 var bcrypt_1 = __importDefault(require("bcrypt"));
@@ -72,39 +83,49 @@ var getUser = function (request, h) { return __awaiter(void 0, void 0, void 0, f
     });
 }); };
 exports.getUser = getUser;
-var createUser = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, password, passwordConfirm, email, user, error_2;
+var registerUser = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, _a, email, password, user, hashedPassword, error_2;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
-                _b.trys.push([0, 3, , 4]);
-                _a = request.payload, password = _a.password, passwordConfirm = _a.passwordConfirm, email = _a.email;
+                _b.trys.push([0, 4, , 5]);
+                payload = request.payload;
+                delete payload.passwordConfirm;
+                _a = payload, email = _a.email, password = _a.password;
                 return [4 /*yield*/, userCollection.findOne({
                         email: email,
                     })];
             case 1:
                 user = _b.sent();
                 if (user !== null) {
-                    throw new Error("User already exists");
+                    return [2 /*return*/, h
+                            .response({
+                            success: false,
+                            message: "User with this email address already exists",
+                        })
+                            .code(400)];
                 }
-                return [4 /*yield*/, userCollection.insertOne(request.payload)];
+                return [4 /*yield*/, bcrypt_1.default.hash(password, 10)];
             case 2:
+                hashedPassword = _b.sent();
+                return [4 /*yield*/, userCollection.insertOne(__assign(__assign({}, payload), { password: hashedPassword }))];
+            case 3:
                 _b.sent();
                 return [2 /*return*/, h.response({ success: true }).code(201)];
-            case 3:
+            case 4:
                 error_2 = _b.sent();
                 console.error(error_2);
                 h.response({
                     success: false,
                     message: "Internal server error",
                     error: error_2.message,
-                });
-                return [3 /*break*/, 4];
-            case 4: return [2 /*return*/];
+                }).code(500);
+                return [3 /*break*/, 5];
+            case 5: return [2 /*return*/];
         }
     });
 }); };
-exports.createUser = createUser;
+exports.registerUser = registerUser;
 var updateUser = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
     var id, updatedDocument, error_3;
     return __generator(this, function (_a) {
@@ -154,8 +175,11 @@ var login = function (request, h) { return __awaiter(void 0, void 0, void 0, fun
                 if (_b) {
                     request.cookieAuth.set({ id: user._id });
                     return [2 /*return*/, h
-                            .response({ success: true, message: "successfully logged in" })
-                            .redirect("/")
+                            .response({
+                            success: true,
+                            message: "successfully logged in",
+                            user: user,
+                        })
                             .code(200)];
                 }
                 else {
@@ -174,3 +198,55 @@ var login = function (request, h) { return __awaiter(void 0, void 0, void 0, fun
     });
 }); };
 exports.login = login;
+var findUsersByNameOrSurname = function (request, h) { return __awaiter(void 0, void 0, void 0, function () {
+    var searchString, limit, users_1, users, error_5;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                searchString = request.query.searchString;
+                limit = Number(request.query.limit);
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 5, , 6]);
+                if (!(searchString !== "" ||
+                    typeof searchString === "undefined" ||
+                    typeof searchString !== null)) return [3 /*break*/, 3];
+                return [4 /*yield*/, userCollection
+                        .aggregate([
+                        {
+                            $match: {
+                                $or: [
+                                    { firstName: { $regEx: searchString, $options: "i" } },
+                                    { lastName: { $regEx: searchString, $options: "i" } },
+                                ],
+                            },
+                        },
+                        {
+                            $sort: { firstName: 1, lastName: 1 },
+                        },
+                        {
+                            $limit: limit,
+                        },
+                    ])
+                        .toArray()];
+            case 2:
+                users_1 = _a.sent();
+                return [2 /*return*/, h.response({ success: true, data: users_1 }).code(200)];
+            case 3: return [4 /*yield*/, userCollection
+                    .find({})
+                    .sort({ firstName: 1 })
+                    .limit(limit)
+                    .toArray()];
+            case 4:
+                users = _a.sent();
+                h.response({ success: true, data: users }).code(200);
+                return [3 /*break*/, 6];
+            case 5:
+                error_5 = _a.sent();
+                console.error(error_5);
+                return [2 /*return*/, h.response({ success: false, error: error_5.message }).code(500)];
+            case 6: return [2 /*return*/];
+        }
+    });
+}); };
+exports.findUsersByNameOrSurname = findUsersByNameOrSurname;

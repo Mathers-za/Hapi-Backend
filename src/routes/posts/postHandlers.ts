@@ -1,8 +1,8 @@
 import { Request, ResponseToolkit } from "@hapi/hapi";
 import { ObjectId } from "mongodb";
 import { db } from "../../db-config";
-import { IComments, IPosts } from "./postsModel";
-import { skip } from "node:test";
+import { IPosts } from "./postsModel";
+import { getOrSetRedisCache } from "../../untily-functions/redisfns";
 
 const postsCollection = db.collection("posts");
 export const createPost = async (request: Request, h: ResponseToolkit) => {
@@ -61,7 +61,7 @@ export const getArrayOfFriendsPosts = async (
   request: Request,
   h: ResponseToolkit
 ) => {
-  const { id, page, pageSize, friendsArray } = request.payload as any;
+  const { page, pageSize, friendsArray } = request.payload as any;
 
   const offset = page - 1 * 10;
 
@@ -145,14 +145,13 @@ export const updatePostComment = async (
   request: Request,
   h: ResponseToolkit
 ) => {
-  const postId = new ObjectId(request.query.postId);
-  const commentId = new ObjectId(request.query.commentId);
+  const { postId, commentId, content } = request.payload as any;
 
   try {
     const update = await postsCollection.findOneAndUpdate(
       { _id: postId, "comments._id": commentId },
       {
-        $set: { "comments.$.content": (request.payload as any).content },
+        $set: { "comments.$.content": content },
       },
       {
         returnDocument: "after",
@@ -170,7 +169,7 @@ export const updatePostComment = async (
 };
 
 export const getUsersPosts = async (request: Request, h: ResponseToolkit) => {
-  const userId = new ObjectId(request.params.id);
+  const userId = new ObjectId(request.params.userId);
   const page = Number(request.query.page);
   const pageSize = Number(request.query.pageSize);
   const offset = (page - 1) * pageSize;
@@ -200,5 +199,26 @@ export const getUsersPosts = async (request: Request, h: ResponseToolkit) => {
       message: "Internal server error",
       error: error.message,
     }).code(500);
+  }
+};
+
+export const redisCachingOfPosts = async (
+  request: Request,
+  h: ResponseToolkit
+) => {
+  const userId = request.params.id;
+
+  try {
+    const data = await getOrSetRedisCache("posts", async () => {
+      return await postsCollection.find().toArray();
+    });
+
+    return h.response({ success: true, data: data });
+  } catch (error: any) {
+    return h.response({
+      message: "Internal server error",
+      success: false,
+      error: error instanceof Error ? error.message : error,
+    });
   }
 };

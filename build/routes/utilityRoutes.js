@@ -14,4 +14,5 @@ exports.customNotFoundRoute = {
         })
             .code(404);
     },
+    options: { auth: false },
 };

@@ -82,8 +82,12 @@ export const login = async (request: Request, h: ResponseToolkit) => {
     if (user && (await bcrypt.compare(password, user.password))) {
       request.cookieAuth.set({ id: user._id });
       return h
-        .response({ success: true, message: "successfully logged in" })
-        .redirect("/")
+        .response({
+          success: true,
+          message: "successfully logged in",
+          user: user,
+        })
+
         .code(200);
     } else {
       return h

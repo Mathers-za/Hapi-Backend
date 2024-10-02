@@ -55,6 +55,7 @@ var user_1 = __importDefault(require("./routes/user/user"));
 var utilityRoutes_1 = require("./routes/utilityRoutes");
 var db_config_2 = require("./db-config");
 var cookie_1 = __importDefault(require("@hapi/cookie"));
+var postsRoutes_1 = __importDefault(require("./routes/posts/postsRoutes"));
 dotenv_1.default.config();
 var init = function () { return __awaiter(void 0, void 0, void 0, function () {
     var server;
@@ -65,10 +66,12 @@ var init = function () { return __awaiter(void 0, void 0, void 0, function () {
                     host: process.env.Host,
                     port: process.env.PORT,
                     routes: {
+                        cors: true,
                         validate: {
                             failAction: function (request, h, error) {
                                 throw error;
                             },
+                            options: { abortEarly: true, stripUnknown: true },
                         },
                     },
                 });
@@ -83,31 +86,29 @@ var init = function () { return __awaiter(void 0, void 0, void 0, function () {
                         isSecure: false,
                         isHttpOnly: true,
                         password: process.env.COOKIE_PASSWORD,
-                        validate: function (request, session) { return __awaiter(void 0, void 0, void 0, function () {
-                            var id, user;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0:
-                                        id = session.id;
-                                        return [4 /*yield*/, db_config_2.db
-                                                .collection("users")
-                                                .findOne({ _id: new Object(id) })];
-                                    case 1:
-                                        user = _a.sent();
-                                        if ((user === null || user === void 0 ? void 0 : user._id) === session.id) {
-                                            return [2 /*return*/, { isValid: true, credentials: user }];
-                                        }
-                                        else {
-                                            return [2 /*return*/, { isValid: false }];
-                                        }
-                                        return [2 /*return*/];
-                                }
-                            });
-                        }); },
                     },
+                    validate: function (request, session) { return __awaiter(void 0, void 0, void 0, function () {
+                        var id, user;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0:
+                                    id = session.id;
+                                    return [4 /*yield*/, db_config_2.db.collection("users").findOne({ _id: id })];
+                                case 1:
+                                    user = _a.sent();
+                                    if ((user === null || user === void 0 ? void 0 : user._id) === session.id) {
+                                        return [2 /*return*/, { isValid: true, credentials: user }];
+                                    }
+                                    else {
+                                        return [2 /*return*/, { isValid: false }];
+                                    }
+                                    return [2 /*return*/];
+                            }
+                        });
+                    }); },
                 });
                 server.auth.default("session");
-                server.route(__spreadArray(__spreadArray([], user_1.default, true), [utilityRoutes_1.customNotFoundRoute], false));
+                server.route(__spreadArray(__spreadArray(__spreadArray([], user_1.default, true), [utilityRoutes_1.customNotFoundRoute], false), postsRoutes_1.default, true));
                 return [4 /*yield*/, server.start()];
             case 2:
                 _a.sent();

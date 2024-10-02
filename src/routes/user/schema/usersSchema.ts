@@ -21,5 +21,13 @@ export const updateUserSchema = joi.object({
     .string()
     .pattern(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/
-    ),
+    )
+    .optional(),
+  age: joi.number().optional().positive(),
+  gender: joi
+    .string()
+    .valid(["Male", "Female", "Other", ""])
+    .allow("")
+    .optional(),
+  bio: joi.string().optional().allow(""),
 });

@@ -22,14 +22,11 @@ var route = [
     {
         method: "POST",
         path: "/api/user/registerUser",
-        handler: userHandlers_1.createUser,
+        handler: userHandlers_1.registerUser,
         options: {
+            auth: false,
             validate: {
-                payload: usersSchema_1.userCreateSchema,
-                failAction: function (request, h, err) {
-                    throw err;
-                },
-                options: { abortEarly: true },
+                payload: usersSchema_1.registerUserSchema,
             },
         },
     },
@@ -41,7 +38,6 @@ var route = [
             validate: {
                 params: joi_1.default.object({ id: joi_1.default.string().required() }),
                 payload: usersSchema_1.updateUserSchema,
-                options: { abortEarly: false },
             },
         },
     },
@@ -50,11 +46,25 @@ var route = [
         method: "POST",
         handler: userHandlers_1.login,
         options: {
-            auth: { mode: "try" },
+            auth: false,
             validate: {
                 payload: joi_1.default.object({
                     email: joi_1.default.string().email().required(),
                     password: joi_1.default.string().required(),
+                }),
+            },
+        },
+    },
+    {
+        path: "/api/user/search",
+        method: "GET",
+        handler: userHandlers_1.findUsersByNameOrSurname,
+        options: {
+            auth: false,
+            validate: {
+                query: joi_1.default.object({
+                    searchString: joi_1.default.string().optional().allow(""),
+                    limit: joi_1.default.string().required().default("20"),
                 }),
             },
         },
