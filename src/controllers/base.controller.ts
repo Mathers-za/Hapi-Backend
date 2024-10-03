@@ -3,16 +3,17 @@ import { ResponseToolkit } from "@hapi/hapi";
 export class BaseController {
   handleErrorResponse(error: unknown, h: ResponseToolkit) {
     console.error(error);
-    if (error instanceof Error) {
+    if (error instanceof RedisError) {
       return h
         .response({
+          name: error.name,
           success: false,
-          message: "Internal server error",
-          error: error.message,
+          message: error.message,
+          error: error,
         })
         .code(500);
     }
-    //ignore bottom part for now. will add more once i define more types of error
+
     return h
       .response({
         success: false,
