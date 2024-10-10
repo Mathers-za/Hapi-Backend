@@ -26,7 +26,7 @@ export const updateUserSchema = joi.object({
   age: joi.number().optional().positive(),
   gender: joi
     .string()
-    .valid(["Male", "Female", "Other", ""])
+    .valid("Male", "Female", "Other", "")
     .allow("")
     .optional(),
   bio: joi.string().optional().allow(""),

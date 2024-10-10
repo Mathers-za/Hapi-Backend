@@ -1,12 +1,11 @@
-import Redis from "redis";
-
-const redisClient = Redis.createClient();
+import { RedisService } from "../services/redis.services";
 
 export async function getOrSetRedisCache(
   key: string,
   fetchDataCallBack: () => Promise<any>,
   expirationSeconds: number | undefined = 300
 ): Promise<object> {
+  const redisClient = RedisService.redisClient;
   return new Promise(async (resolve, reject) => {
     try {
       const data = await redisClient.get(key);

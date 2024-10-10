@@ -1,7 +1,8 @@
 import { ResponseToolkit } from "@hapi/hapi";
+import { RedisError } from "../errors/redis.errors";
 
 export class BaseController {
-  handleErrorResponse(error: unknown, h: ResponseToolkit) {
+  protected handleErrorResponse(error: any, h: ResponseToolkit) {
     console.error(error);
     if (error instanceof RedisError) {
       return h

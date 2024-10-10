@@ -1,7 +1,22 @@
-import Redis from "redis";
+import * as redis from "redis";
 import { MongoError } from "mongodb";
+import { RedisError } from "../errors/redis.errors";
+import { createClient } from "@redis/client";
+import RedisClient from "@redis/client/dist/lib/client";
 export class RedisService {
-  protected readonly redisClient = Redis.createClient();
+  private static _redisClient: redis.RedisClientType;
+
+  static get redisClient() {
+    if (!RedisService._redisClient) {
+      RedisService._redisClient = redis.createClient();
+    }
+    return RedisService._redisClient;
+  }
+
+  constructor() {
+    //makes sure that we are working with a single redisClient connection
+    RedisService.redisClient;
+  }
 
   async getOrSetReadsCache<T>(
     key: string,
@@ -9,12 +24,12 @@ export class RedisService {
     expirationSeconds: number = 600
   ) {
     try {
-      const cachedData = await this.redisClient.get(key);
+      const cachedData = await RedisService._redisClient.get(key);
       if (cachedData) {
         return JSON.parse(cachedData);
       } else {
         const dataFromDb = await mongoDbOperationCallback();
-        this.redisClient.setEx(
+        RedisService._redisClient.setEx(
           key,
           expirationSeconds,
           JSON.stringify(dataFromDb)
@@ -30,9 +45,9 @@ export class RedisService {
 
   async refreshCachedDataByKeyOrKeys(key: string | string[]): Promise<void> {
     if (Array.isArray(key)) {
-      await Promise.all(key.map((el) => this.redisClient.del(el)));
+      await Promise.all(key.map((el) => RedisService._redisClient.del(el)));
     } else {
-      await this.redisClient.del(key);
+      await RedisService._redisClient.del(key);
     }
   }
 }

@@ -7,6 +7,9 @@ import { client, db } from "./db-config";
 import cookieAuth from "@hapi/cookie";
 import postsRoutes from "./routes/posts/postsRoutes";
 import { ObjectId } from "mongodb";
+import { gridRoutes } from "./routes/posts/grid.routes";
+import { exit } from "node:process";
+import { error } from "node:console";
 
 dotenv.config();
 
@@ -49,7 +52,12 @@ const init = async () => {
 
   server.auth.default("session");
 
-  server.route([...userRoutes, customNotFoundRoute, ...postsRoutes]);
+  server.route([
+    ...userRoutes,
+    customNotFoundRoute,
+    ...postsRoutes,
+    ...gridRoutes,
+  ]);
   await server.start();
   await mongoRun();
 
@@ -60,6 +68,8 @@ process.on("uncaughtException", (error) => {
   console.log(
     `An unhandled error occurred when starting the db, error: ${error}`
   );
+
+  process.exit(1);
 });
 
 process.on("SIGINT", async () => {
@@ -67,6 +77,11 @@ process.on("SIGINT", async () => {
   await client.close();
   console.log("MongoDB connection closed");
   process.exit(0);
+});
+
+process.on("unhandledRejection", (error) => {
+  console.log("an unhandled rejection occurred");
+  process.exit(1);
 });
 
 init();
