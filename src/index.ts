@@ -83,5 +83,6 @@ process.on("unhandledRejection", (error) => {
   console.log("an unhandled rejection occurred");
   process.exit(1);
 });
+console.log("my new edition");
 
 init();
